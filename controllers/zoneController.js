@@ -1,8 +1,10 @@
 // zones.js schema
-const Zone = require("../models/zones");
+const Zone = require("../model/zoneSchema");
 
-class userZone {
-  static addzone = async (req, res) => {
+const slugify = require("slugify");
+
+class zoneController {
+  static addZone = async (req, res) => {
     try {
       const { zoneName } = req.body;
       if (!zoneName) {
@@ -21,7 +23,7 @@ class userZone {
     }
   };
 
-  static viewall = async (req, res) => {
+  static viewAll = async (req, res) => {
     try {
       const data = await Zone.find();
       res.status(200).json({ message: "view successful", info: data });
@@ -30,17 +32,17 @@ class userZone {
     }
   };
 
-  static searchzone = async (req, res) => {
+  static searchZone = async (req, res) => {
     try {
-      let zoneid = req.params.id;
-      const result = await Zone.findById(zoneid);
+      let zoneId = req.params.id;
+      const result = await Zone.findById(zoneId);
       res.status(200).json({ data: result });
     } catch (err) {
       res.status(404).json({ error: err.message });
     }
   };
 
-  static zonedelete = async (req, res) => {
+  static zoneDelete = async (req, res) => {
     try {
       const data = req.params.id;
       const result = await Zone.findByIdAndDelete(data);
@@ -52,15 +54,15 @@ class userZone {
     }
   };
 
-  static updatezone = async (req, res) => {
+  static updateZone = async (req, res) => {
     try {
-      const zoneid = req.params.id;
+      const zoneId = req.params.id;
       const data = req.body;
-      const zonedata = await Zone.findById(zoneid);
-      zonedata.zoneName = data.zoneName;
+      const zoneData = await Zone.findById(zoneId);
+      zoneData.zoneName = data.zoneName;
       // zonedata.slug = data.slug;
-      zonedata.slug = slugify(data.zoneName);
-      const update = await zonedata.save();
+      zoneData.slug = slugify(data.zoneName);
+      const update = await zoneData.save();
       res
         .status(200)
         .json({ message: "update done successfully", info: update });
@@ -85,4 +87,4 @@ class userZone {
   };
 }
 
-module.exports = userZone;
+module.exports = zoneController;

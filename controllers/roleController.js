@@ -1,8 +1,9 @@
-const roles = require("../model/roles");
+const roles = require("../model/roleSchema");
 
-// Create a new role
-const API = {
-  createRole: async (req, res) => {
+class roleController {
+  // Create a new role
+
+  static createRole = async (req, res) => {
     try {
       const role = new roles(req.body);
       const savedRole = await role.save();
@@ -12,10 +13,10 @@ const API = {
         .status(500)
         .json({ message: "Error creating role", error: error.message });
     }
-  },
+  };
 
   // Get all roles
-  getRoles: async (req, res) => {
+  static getRoles = async (req, res) => {
     try {
       const rolesList = await roles.find().exec();
       res.json(rolesList);
@@ -25,10 +26,10 @@ const API = {
         .status(500)
         .json({ message: "Error fetching roles", error: error.message });
     }
-  },
+  };
 
   // Get a role by ID
-  getRoleById: async (req, res) => {
+  static getRoleById = async (req, res) => {
     try {
       const id = req.params.id;
       const role = await roles.findById(id).exec();
@@ -42,7 +43,7 @@ const API = {
         .status(500)
         .json({ message: "Error fetching role", error: error.message });
     }
-  },
-};
+  };
+}
 
-module.exports = API;
+module.exports = roleController;
