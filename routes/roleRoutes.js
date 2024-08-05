@@ -7,4 +7,4 @@ Router.post("/addrole", createRole);
 Router.get("/getrole", getRoles);
 
 module.exports = Router;
-console.log("router is ready to use");
+ 
