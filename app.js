@@ -20,6 +20,7 @@ const bettingRoute = require("./routes/bettingRoutes");
 const countdownRoute = require("./routes/countdownRoutes");
 const adminNotificationRoute = require("./routes/adminNotificationRoutes");
 const settingRoute = require("./routes/settingRoutes");
+const rankRoute = require("./routes/rankRoutes");
 const deviceinfoRoute = require("./routes/deviceinfoRoutes");
 
 const PORT = process.env.PORT || 6010;
@@ -47,7 +48,8 @@ app.use("/socialmedia", socialMediaRoute);
 app.use("/countdown", countdownRoute);
 app.use("/adminnotification", adminNotificationRoute);
 app.use("/setting", settingRoute);
-app.use("/deviceinfo",deviceinfoRoute);
+app.use("/deviceinfo", deviceinfoRoute);
+app.use("/rank", rankRoute);
 
 app.listen(PORT, () => {
   console.log(`server has started at port ${PORT}`);
