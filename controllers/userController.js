@@ -8,7 +8,7 @@ const jwt = require("jsonwebtoken");
 const Role = require("../model/roleSchema");
 
 const BASE_URL = "http://localhost:6010/";
-const upload_URL = BASE_URL + "my-uploads/";
+const upload_URL = BASE_URL + "images/";
 
 class userController {
   // const adduser = async (req, res) => {
