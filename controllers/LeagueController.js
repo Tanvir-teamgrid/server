@@ -23,7 +23,7 @@ class leagueController {
     try {
        
       
-
+        let savedLeague;
       
       
       
@@ -69,6 +69,9 @@ class leagueController {
           },
         });
       } else {
+        
+        const league = new League({ title, userId});
+          savedLeague = await league.save();
         res.status(201).json({
           message: "League created successfully without invitations",
           info: savedLeague,
@@ -165,7 +168,7 @@ class leagueController {
   };
 
   static updateLeague = async (req, res) => {
-    const { emails } = req.body;
+    const { emails,title } = req.body;
     const { id } = req.params;
 
     if (!id || !emails) {
@@ -202,6 +205,7 @@ class leagueController {
         const league = await League.findByIdAndUpdate(id, {
             $addToSet: { userId: { $each: newUserIds } },
             emails: emailArray,
+            title,
         }, { new: true });
 
         res.status(200).json({
