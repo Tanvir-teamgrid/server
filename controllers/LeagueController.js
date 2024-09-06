@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 class leagueController {
 
   static addLeague = async (req, res) => {
-    const { title, emails,userId} = req.body;
+    const { title, emails,userId,allowInvitation} = req.body;
     // const userId =req.user.id;
 
     if (!title || !userId) {
@@ -43,7 +43,7 @@ class leagueController {
           });
         }
 
-        const league = new League({ title, userId, emails: foundEmails });
+        const league = new League({ title, userId, emails: foundEmails,allowInvitation });
         const savedLeague = await league.save();
 
          
@@ -70,7 +70,7 @@ class leagueController {
         });
       } else {
         
-        const league = new League({ title, userId});
+        const league = new League({ title, userId,allowInvitation});
           savedLeague = await league.save();
         res.status(201).json({
           message: "League created successfully without invitations",
@@ -168,7 +168,7 @@ class leagueController {
   };
 
   static updateLeague = async (req, res) => {
-    const { emails,title } = req.body;
+    const { emails,title,allowInvitation } = req.body;
     const { id } = req.params;
 
     if (!id || !emails) {
@@ -206,6 +206,7 @@ class leagueController {
             $addToSet: { userId: { $each: newUserIds } },
             emails: emailArray,
             title,
+            allowInvitation
         }, { new: true });
 
         res.status(200).json({
