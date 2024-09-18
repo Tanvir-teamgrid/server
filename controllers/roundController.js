@@ -1,199 +1,232 @@
+const Team = require("../model/teamSchema");
+const Match = require("../model/matchSchema");
 const Round = require("../model/roundSchema");
-const Season = require("../model/seasonSchema");
-const slugify = require("slugify");
+const Zone = require("../model/zoneSchema");
+const Season = require("../model/seasonSchema"); // Import the Season model
+const slugify = require("slugify"); // Ensure to install this package
 
-class roundController {
-
+class RoundController {
+  // Generate slug from round name
   static generateSlug = (roundName) => {
     switch (roundName.toLowerCase()) {
-        case 'play in match':
-            return 'playin';
-        case 'round 1':
-            return 'round 1';
-        case 'round 2':
-            return 'round 2';
-        case 'sweet 16':
-            return 'round 3';
-        case 'elite 8':
-            return 'round 4';
-        case 'final 4':
-              return 'round 5';    
-        case 'final (championship game)':
-            return 'round 6';
-        default:
-            return `round-${roundName.match(/\d+/) ? roundName.match(/\d+/)[0] : 'unknown'}`;
-    }
-};
-static generateNumber = (roundName) => {
-  switch (roundName.toLowerCase()) {
-      case 'play in match':
-          return 0;
-      case 'round 1':
-          return 1;
-      case 'round 2':
-          return 2;
-      case 'sweet 16':
-          return 3;
-      case 'elite 8':
-          return 4;
-      case 'final 4':
-            return 5;    
-      case 'final (championship game)':
-          return 6;
+      case "play in match":
+        return "playin";
+      case "round 1":
+        return "round-1";
+      case "round 2":
+        return "round-2";
+      case "sweet 16":
+        return "round-3";
+      case "elite 8":
+        return "round-4";
+      case "final 4":
+        return "round-5";
+      case "final (championship game)":
+        return "round-6";
       default:
-          return `round-${roundName.match(/\d+/) ? roundName.match(/\d+/)[0] : 'unknown'}`;
-  }
-};
+        return `round-${
+          roundName.match(/\d+/) ? roundName.match(/\d+/)[0] : "unknown"
+        }`;
+    }
+  };
 
-// Static method to add a new round
-static addRound = async (req, res) => {
+  // Generate round number from round name
+  static generateNumber = (roundName) => {
+    switch (roundName.toLowerCase()) {
+      case "play in match":
+        return 0;
+      case "round 1":
+        return 1;
+      case "round 2":
+        return 2;
+      case "sweet 16":
+        return 3;
+      case "elite 8":
+        return 4;
+      case "final 4":
+        return 5;
+      case "final (championship game)":
+        return 6;
+      default:
+        return null;
+    }
+  };
+
+  // Initialize Round 1 for all zones
+  // Initialize Round 1 for all zones
+  static initializeRoundOne = async (req, res) => {
     try {
-        const {
-            name,
-            playDate,
-            biddingEndDate,
-            seasonId,
-             
-        } = req.body;
+      // Define the zones manually
+      const zones = [
+        { zoneName: "Zone 1", slug: "zone-1" },
+        { zoneName: "Zone 2", slug: "zone-2" },
+        { zoneName: "Zone 3", slug: "zone-3" },
+        { zoneName: "Zone 4", slug: "zone-4" },
+      ];
 
-        // Validate required fields
-        if (!name || !playDate || !biddingEndDate || !seasonId) {
-            return res.status(400).json({ error: "All fields are required" });
+      // Loop over zones and create matches
+      for (const zone of zones) {
+        const teams = await Team.find({ zoneName: zone.zoneName }); // Assuming teams have a `zoneName` field
+
+        if (teams.length !== 16) {
+          return res
+            .status(400)
+            .json({ message: `${zone.zoneName} must have exactly 16 teams.` });
         }
 
-        // Validate and parse date fields
-        const now = new Date();
-        const playDateObj = new Date(playDate);
-        const biddingEndDateObj = new Date(biddingEndDate);
+        // Shuffle teams to randomize pairing
+        const shuffledTeams = teams.sort(() => 0.5 - Math.random());
 
-        // Check if dates are valid
-        if (isNaN(playDateObj.getTime()) || isNaN(biddingEndDateObj.getTime())) {
-            return res.status(400).json({ error: "Invalid date format" });
+        // Create matches for round 1
+        const matchPromises = [];
+        for (let i = 0; i < shuffledTeams.length; i += 2) {
+          const match = new Match({
+            teamOneId: shuffledTeams[i]._id,
+            teamTwoId: shuffledTeams[i + 1]._id,
+            roundNumber: 1,
+            zoneSlug: zone.slug || zone.zoneName, // Use slug if available
+          });
+          matchPromises.push(match.save());
         }
-
-        if (playDateObj < now || biddingEndDateObj < now) {
-            return res.status(400).json({
-                error: "Play date and bidding end date must be in the future",
-            });
-        }
-
-        // Check if season exists
-        const season = await Season.findById(seasonId);
-        if (!season) {
-            return res.status(404).json({ message: "Season not found" });
-        }
+        await Promise.all(matchPromises); // Save all matches in parallel
 
         // Create and save the round
+        const name = "Round 1";
+        const playDate = new Date(); // Set playDate as per your logic, e.g., a week from now
+        const biddingEndDate = new Date();
+        biddingEndDate.setHours(biddingEndDate.getHours() + 1); // Example: bidding ends 1 hour after
+
+        // Validate and prepare round details
         const slug = slugify(this.generateSlug(name), { lower: true });
-        const roundNumber =this.generateNumber(name);
+        const roundNumber = this.generateNumber(name);
+
         const round = new Round({
-            name,
-            slug,
-            playDate: playDateObj,
-            biddingEndDate: biddingEndDateObj,
-            seasonId,
-            roundNumber,
+          name,
+          slug,
+          playDate,
+          biddingEndDate,
+          seasonId: req.body.seasonId, // Assuming seasonId is passed in request body
+          roundNumber,
         });
 
-        const result = await round.save();
-        return res.status(201).json({ message: "Round created successfully", data: result });
+        await round.save();
+      }
+
+      return res
+        .status(201)
+        .json({ message: "Round 1 initialized successfully for all zones" });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "Internal Server Error" });
-    }
-};
-  static viewRound = async (req, res) => {
-    try {
-      const roundList = await Round.find().exec();
-      res.json(roundList);
-    } catch (error) {
-      console.log(error);
-      res
-        .status(500)
-        .json({ message: "Error fetching roles", error: error.message });
+      console.error("Error initializing Round 1:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
   };
 
-  static deleteRound = async (req, res) => {
+  // Progress winners to the next round
+  static completeRoundAndCreateNext = async (req, res) => {
     try {
-      const roundId = req.params.id;
-      if (!roundId) {
-        return res.status(400).json({ message: "round ID is required" });
+      const { zone, roundNumber } = req.body;
+
+      // Fetch all matches from the current round in the zone
+      const matches = await Match.find({
+        roundNumber,
+        zone,
+        matchStatus: "completed",
+      });
+
+      if (matches.length === 0) {
+        return res.status(404).json({
+          message: `No completed matches found for ${zone} in Round ${roundNumber}`,
+        });
       }
 
-      const user = await Round.deleteOne({ _id: roundId });
-      if (user.deletedCount === 0) {
-        return res.status(404).json({ message: "round not found" });
+      // Collect winners from current round
+      const winners = matches
+        .map((match) => match.winner)
+        .filter((winner) => winner);
+
+      // Check if all matches have a winner
+      if (winners.length !== matches.length) {
+        return res
+          .status(400)
+          .json({ message: "Not all matches have been completed yet." });
       }
 
-      res.json({ message: "round deleted successfully" });
-    } catch (error) {
-      console.error(error);
-      res
-        .status(500)
-        .json({ message: "Error deleting round", error: error.message });
-    }
-  };
+      // Proceed to the next round
+      const nextRoundNumber = roundNumber + 1;
+      if (nextRoundNumber > 6) {
+        return res
+          .status(400)
+          .json({ message: "Championship round is the final round." });
+      }
 
-  static updateRound = async (req, res) => {
-    try {
-      const roundId = req.params.id;
-      const data = req.body;
-      const roundData = await Round.findById(roundId);
-      roundData.name = data.name;
-      // roundData.totalMatch = data.totalMatch;
-      roundData.playDate = data.playDate;  
-      roundData.biddingEndDate = data.biddingEndDate;  
-  
-      const update = await roundData.save();
-      res
+      // Pair winners for the next round
+      const nextRoundMatches = [];
+      for (let i = 0; i < winners.length; i += 2) {
+        const match = new Match({
+          teamOneId: winners[i],
+          teamTwoId: winners[i + 1] || null, // Handle odd number of teams
+          roundNumber: nextRoundNumber,
+          zone,
+        });
+        nextRoundMatches.push(match);
+      }
+
+      await Match.insertMany(nextRoundMatches);
+
+      // Create a new round
+      const newRound = new Round({
+        name: `Round ${nextRoundNumber}`,
+        roundNumber: nextRoundNumber,
+        zone,
+      });
+      await newRound.save();
+
+      return res
         .status(200)
-        .json({ message: "update done successfully", info: update });
-    } catch (err) {
-      res.status(404).json({ error: err.message });
+        .json({ message: `Round ${nextRoundNumber} created for ${zone}` });
+    } catch (error) {
+      console.error("Error completing round:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
   };
 
-  // static updateRound = async (req, res) => {
-  //   try {
-  //     const roundId = req.params.id;
-  //     const data = req.body;
-  //     const roundData = await Round.findById(roundId);
-  //     roundData.name = data.name;
-  //     roundData.totalMatch = data.totalMatch;
-
-  //     const update = await roundData.save();
-  //     res
-  //       .status(200)
-  //       .json({ message: "update done successfully", info: update });
-  //   } catch (err) {
-  //     res.status(404).json({ error: err.message });
-  //   }
-  // };
-
-  static searchRoundBySlug = async (req, res) => {
+  // Progress to the Championship Round
+  static createChampionship = async (req, res) => {
     try {
-      const slug = req.params.slug;
-      const round = await Round.findOne({ slug });
-      if (!round) {
-        res.status(404).send({ message: "round not found" });
-      } else {
-        res.send(round);
+      // Fetch the winners of each zone's final round
+      const winners = [];
+
+      for (let zone of ["Zone 1", "Zone 2", "Zone 3", "Zone 4"]) {
+        const finalRoundMatch = await Match.findOne({
+          zone,
+          roundNumber: 6,
+          matchStatus: "completed",
+        });
+        if (!finalRoundMatch) {
+          return res
+            .status(400)
+            .json({ message: `Final round in ${zone} is not completed yet.` });
+        }
+        winners.push(finalRoundMatch.winner);
       }
-    } catch (err) {
-      console.error(err);
-      res.status(500).send({ message: "Error fetching round" });
-    }
-  };
-  static searchRoundById = async (req, res) => {
-    try {
-      let roundId = req.params.id;
-      const result = await Round.findById(roundId);
-      res.status(200).json({ data: result });
-    } catch (err) {
-      res.status(404).json({ error: err.message });
+
+      // Create championship matches
+      const championshipMatch = new Match({
+        teamOneId: winners[0],
+        teamTwoId: winners[1],
+        roundNumber: 7, // Championship
+        zone: "Championship",
+      });
+      await championshipMatch.save();
+
+      return res
+        .status(200)
+        .json({ message: "Championship round created successfully" });
+    } catch (error) {
+      console.error("Error creating championship:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
   };
 }
 
-module.exports = roundController;
+module.exports = RoundController;
